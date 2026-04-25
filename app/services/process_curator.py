@@ -30,25 +30,32 @@ def curate_digests(hours: int = 24) -> dict:
         logger.warning(f"No digests found from the last {hours} hours")
         return {"total": 0, "ranked": 0}
     
-    logger.info(f"Curating {total} digests from the last {hours} hours")
-    logger.info(f"User profile: {USER_PROFILE['name']} - {USER_PROFILE['background']}")
+    logger.info(f"Curating {total} digests for {USER_PROFILE['name']}")
     
-    ranked_articles = curator.rank_digests(digests)
+    # CHANGE: Call 'rank_all_digests' which handles the batches/sleeps internally
+    # We pass the full list; the agent will chunk it into 10s and wait 20s between
+    ranked_articles = curator.rank_all_digests(digests, batch_size=10)
     
     if not ranked_articles:
         logger.error("Failed to rank digests")
         return {"total": total, "ranked": 0}
     
     logger.info(f"Successfully ranked {len(ranked_articles)} articles")
-    logger.info("\n=== Top 10 Ranked Articles ===")
     
-    for article in ranked_articles[:10]:
-        digest = next((d for d in digests if d["id"] == article.digest_id), None)
+    # Verification and Logging
+    print("\n" + "="*30)
+    print(f" TOP RECOMMENDATIONS FOR {USER_PROFILE['name'].upper()} ")
+    print("="*30)
+    
+    for i, article in enumerate(ranked_articles[:10], 1):
+        # Match ID back to original data for rich logging
+        digest = next((d for d in digests if str(d["id"]) == str(article.digest_id)), None)
         if digest:
-            logger.info(f"\nRank {article.rank} | Score: {article.relevance_score:.1f}/10.0")
-            logger.info(f"Title: {digest['title']}")
-            logger.info(f"Type: {digest['article_type']}")
-            logger.info(f"Reasoning: {article.reasoning}")
+            # We use 'i' for the display rank because the agent's internal 
+            # 'article.rank' is relative to its batch, but 'ranked_articles' 
+            # is now globally sorted.
+            logger.info(f"\n[#{i}] {digest['title']}")
+            logger.info(f"Score: {article.relevance_score}/10 | Reason: {article.reasoning}")
     
     return {
         "total": total,
@@ -56,17 +63,17 @@ def curate_digests(hours: int = 24) -> dict:
         "articles": [
             {
                 "digest_id": a.digest_id,
-                "rank": a.rank,
+                "rank": i + 1, # Global rank
                 "relevance_score": a.relevance_score,
                 "reasoning": a.reasoning
             }
-            for a in ranked_articles
+            for i, a in enumerate(ranked_articles)
         ]
     }
 
 
 if __name__ == "__main__":
-    result = curate_digests(hours=24)
+    result = curate_digests(hours=440)
     print(f"\n=== Curation Results ===")
     print(f"Total digests: {result['total']}")
     print(f"Ranked: {result['ranked']}")
