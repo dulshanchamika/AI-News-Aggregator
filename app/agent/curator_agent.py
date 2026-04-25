@@ -43,7 +43,7 @@ Return a JSON object containing a list of ranked articles."""
 class CuratorAgent:
     def __init__(self, user_profile: dict):
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = "gemini-2.5-flash" 
+        self.model = "gemini-2.5-flash-lite" 
         self.user_profile = user_profile
         # We combine the Master Prompt with the specific User Data here
         self.system_instruction = self._build_system_prompt()

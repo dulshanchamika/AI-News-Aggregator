@@ -40,7 +40,7 @@ class DigestAgent:
                 )
             )
         )
-        self.model = "gemini-2.5-flash"
+        self.model = "gemini-2.5-flash-lite"
 
     def generate_batch_digest(self, articles: List[dict]) -> List[DigestOutput]:
         """

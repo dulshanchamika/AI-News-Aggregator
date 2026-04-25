@@ -133,21 +133,41 @@ def digest_to_html(digest_response) -> str:
         return markdown_to_html(digest_response.to_markdown() if hasattr(digest_response, 'to_markdown') else str(digest_response))
     
     html_parts = []
+    
+    # Render Introduction
     greeting_html = markdown.markdown(digest_response.introduction.greeting, extensions=['extra', 'nl2br'])
     introduction_html = markdown.markdown(digest_response.introduction.introduction, extensions=['extra', 'nl2br'])
     html_parts.append(f'<div class="greeting">{greeting_html}</div>')
     html_parts.append(f'<div class="introduction">{introduction_html}</div>')
     html_parts.append('<hr>')
     
+    # Render Articles
     for article in digest_response.articles:
         html_parts.append(f'<h3>{html.escape(article.title)}</h3>')
+        
+        # Add a "Relevance" badge
+        html_parts.append(f'<p style="font-size: 12px; color: #666; margin-top: -5px;">'
+                          f'<em>Expertise Alignment: {article.relevance_score:.1f}/10</em></p>')
+        
         summary_html = markdown.markdown(article.summary, extensions=['extra', 'nl2br'])
         html_parts.append(f'<div>{summary_html}</div>')
-        html_parts.append(f'<p><a href="{html.escape(article.url)}" class="article-link">Read more →</a></p>')
+        
+        # NEW: Add the Reasoning/Insight block
+        if article.reasoning:
+            reasoning_html = markdown.markdown(article.reasoning, extensions=['extra', 'nl2br'])
+            html_parts.append(f'''
+                <div style="background-color: #f8f9fa; border-left: 4px solid #0066cc; padding: 10px; margin: 15px 0;">
+                    <strong style="font-size: 13px; color: #0066cc;">WHY THIS MATTERS FOR YOU:</strong>
+                    <div style="font-size: 14px; margin-top: 5px;">{reasoning_html}</div>
+                </div>
+            ''')
+            
+        html_parts.append(f'<p><a href="{html.escape(article.url)}" class="article-link">Read full research →</a></p>')
         html_parts.append('<hr>')
     
     html_content = '\n'.join(html_parts)
     
+    # Return using your existing CSS template
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -155,76 +175,15 @@ def digest_to_html(digest_response) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;
         }}
-        h3 {{
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-top: 20px;
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }}
-        p {{
-            margin: 8px 0;
-            color: #4a4a4a;
-        }}
-        strong {{
-            font-weight: 600;
-            color: #1a1a1a;
-        }}
-        em {{
-            font-style: italic;
-            color: #666;
-        }}
-        a {{
-            color: #0066cc;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-        a:hover {{
-            text-decoration: underline;
-        }}
-        hr {{
-            border: none;
-            border-top: 1px solid #e5e5e5;
-            margin: 20px 0;
-        }}
-        .greeting {{
-            font-size: 16px;
-            font-weight: 500;
-            color: #1a1a1a;
-            margin-bottom: 12px;
-        }}
-        .introduction {{
-            color: #4a4a4a;
-            margin-bottom: 20px;
-        }}
-        .article-link {{
-            display: inline-block;
-            margin-top: 8px;
-            color: #0066cc;
-            font-size: 14px;
-        }}
-        .greeting p {{
-            margin: 0;
-        }}
-        .introduction p {{
-            margin: 0;
-        }}
-        div {{
-            margin: 8px 0;
-            color: #4a4a4a;
-        }}
-        div p {{
-            margin: 4px 0;
-        }}
+        h3 {{ font-size: 18px; font-weight: 600; color: #1a1a1a; margin-top: 20px; margin-bottom: 8px; line-height: 1.4; }}
+        p {{ margin: 8px 0; color: #4a4a4a; }}
+        a {{ color: #0066cc; text-decoration: none; font-weight: 500; }}
+        hr {{ border: none; border-top: 1px solid #e5e5e5; margin: 25px 0; }}
+        .greeting {{ font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }}
+        .introduction {{ font-size: 15px; color: #4a4a4a; margin-bottom: 20px; }}
     </style>
 </head>
 <body>
