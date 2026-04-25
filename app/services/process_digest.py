@@ -1,4 +1,5 @@
-from typing import Optional
+import time
+from typing import Optional, List
 import logging
 import sys
 from pathlib import Path
@@ -15,9 +16,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def chunk_list(data: list, size: int):
+    """Break a list into smaller chunks."""
+    for i in range(0, len(data), size):
+        yield data[i:i + size]
 
-def process_digests(limit: Optional[int] = None) -> dict:
-    agent = DigestAgent()
+def process_digests(limit: Optional[int] = None, batch_size: int = 5) -> dict:
+    # Use the batch-capable version of DigestAgent
+    agent = DigestAgent() 
     repo = Repository()
     
     articles = repo.get_articles_without_digest(limit=limit)
@@ -25,39 +31,48 @@ def process_digests(limit: Optional[int] = None) -> dict:
     processed = 0
     failed = 0
     
-    logger.info(f"Starting digest processing for {total} articles")
+    logger.info(f"Starting batch digest processing for {total} articles (Batch Size: {batch_size})")
     
-    for idx, article in enumerate(articles, 1):
-        article_type = article["type"]
-        article_id = article["id"]
-        article_title = article["title"][:60] + "..." if len(article["title"]) > 60 else article["title"]
-        
-        logger.info(f"[{idx}/{total}] Processing {article_type}: {article_title} (ID: {article_id})")
+    # Split the 47 articles into chunks of 5
+    article_chunks = list(chunk_list(articles, batch_size))
+    total_batches = len(article_chunks)
+
+    for b_idx, chunk in enumerate(article_chunks, 1):
+        logger.info(f"Processing Batch [{b_idx}/{total_batches}] containing {len(chunk)} articles...")
         
         try:
-            digest_result = agent.generate_digest(
-                title=article["title"],
-                content=article["content"],
-                article_type=article_type
-            )
+            # Note: You'll need to update your DigestAgent to have a 'generate_batch_digest' method
+            # as shown in our previous discussion.
+            batch_results = agent.generate_batch_digest(chunk)
             
-            if digest_result:
-                repo.create_digest(
-                    article_type=article_type,
-                    article_id=article_id,
-                    url=article["url"],
-                    title=digest_result.title,
-                    summary=digest_result.summary,
-                    published_at=article.get("published_at")
-                )
-                processed += 1
-                logger.info(f"✓ Successfully created digest for {article_type} {article_id}")
+            if batch_results:
+                # Map the generated digests back to their original IDs
+                # We assume the AI returns them in the same order
+                for i, digest in enumerate(batch_results):
+                    original_article = chunk[i]
+                    repo.create_digest(
+                        article_type=original_article["type"],
+                        article_id=original_article["id"],
+                        url=original_article["url"],
+                        title=digest.title,
+                        summary=digest.summary,
+                        published_at=original_article.get("published_at")
+                    )
+                    processed += 1
+                
+                logger.info(f"✓ Successfully processed batch {b_idx}")
             else:
-                failed += 1
-                logger.warning(f"✗ Failed to generate digest for {article_type} {article_id}")
+                failed += len(chunk)
+                logger.warning(f"✗ Failed to generate digests for batch {b_idx}")
+                
         except Exception as e:
-            failed += 1
-            logger.error(f"✗ Error processing {article_type} {article_id}: {e}")
+            failed += len(chunk)
+            logger.error(f"✗ Critical error in batch {b_idx}: {e}")
+        
+        # Add a mandatory sleep between batches to avoid the RPM limit
+        if b_idx < total_batches:
+            logger.info("Sleeping for 10 seconds to respect Free Tier limits...")
+            time.sleep(20)
     
     logger.info(f"Processing complete: {processed} processed, {failed} failed out of {total} total")
     
@@ -67,9 +82,9 @@ def process_digests(limit: Optional[int] = None) -> dict:
         "failed": failed
     }
 
-
 if __name__ == "__main__":
     result = process_digests()
+    print(f"\nFinal Summary:")
     print(f"Total articles: {result['total']}")
     print(f"Processed: {result['processed']}")
     print(f"Failed: {result['failed']}")

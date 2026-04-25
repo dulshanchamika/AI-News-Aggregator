@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "docling>=2.84.0",
     "feedparser>=6.0.12",
+    "google-genai>=1.73.1",
     "ipykernel>=7.2.0",
     "ipywidgets>=8.1.8",
     "jupyter>=1.1.1",
