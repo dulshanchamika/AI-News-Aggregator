@@ -4,7 +4,6 @@ services:
     databaseName: ai_news_aggregator
     user: ai_news_user
     plan: free
-    maxConnections: 25
 
   - type: cron
     name: daily-digest-job
