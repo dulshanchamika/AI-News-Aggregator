@@ -33,7 +33,11 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     
     if total == 0:
         logger.warning(f"No digests found from the last {hours} hours")
-        return None
+        return email_agent.create_email_digest_response(
+            ranked_articles=[],
+            total_ranked=0,
+            limit=top_n
+        )
     
     # 3. Rank articles (Using the BATCHED Gemini method)
     logger.info(f"Ranking {total} digests for {USER_PROFILE['name']}...")
@@ -78,14 +82,6 @@ def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
     try:
         # Generate the structured digest
         result = generate_email_digest(hours=hours, top_n=top_n)
-        
-        if result is None:
-            logger.info("Skipping email dispatch: no new digests available.")
-            return {
-                "success": True,
-                "articles_count": 0,
-                "subject": "No new digests",
-            }
         
         # Prepare content formats
         markdown_content = result.to_markdown()
