@@ -1,15 +1,26 @@
 import os
 import sys
+from pathlib import Path
 from sqlalchemy import text
 from dotenv import load_dotenv
 
-# Ensure the app directory is in the path
-sys.path.insert(0, os.getcwd())
+# Ensure the root directory is in the path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 load_dotenv()
 
-from app.database.connection import get_session
+from app.database.connection import get_session, get_database_info
 
 def run_migration():
+    db_info = get_database_info()
+    
+    if db_info['environment'] == 'production' or db_info['url_masked'] != 'localhost':
+        print("\n⚠️  WARNING: You are about to migrate the PRODUCTION database.")
+        print(f"Host: {db_info['host']}")
+        confirm = input("Type 'yes' to continue: ")
+        if confirm.lower() != 'yes':
+            print("Migration cancelled.")
+            return
+
     session = get_session()
     try:
         # Check if column exists

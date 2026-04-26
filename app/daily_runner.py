@@ -9,6 +9,8 @@ from app.services.process_anthropic import process_anthropic_markdown
 from app.services.process_youtube import process_youtube_transcripts
 from app.services.process_digest import process_digests
 from app.services.process_email import send_digest_email
+from app.database.models import Base
+from app.database.connection import engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +25,10 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
     logger.info("=" * 60)
     logger.info("Starting Daily AI News Aggregator Pipeline")
     logger.info("=" * 60)
+    
+    # Ensure database tables exist
+    logger.info("Ensuring database tables exist...")
+    Base.metadata.create_all(bind=engine)
     
     results = {
         "start_time": start_time.isoformat(),
