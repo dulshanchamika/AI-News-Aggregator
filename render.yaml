@@ -1,5 +1,5 @@
 databases:
-    name: ai-news-aggregator-db
+  - name: ai-news-aggregator-db
     databaseName: ai_news_aggregator
     user: ai_news_user
     plan: free
