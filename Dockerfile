@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONBUFFERED=1
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -8,14 +13,10 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN pip install --no-cache-dir uv
+COPY pyproject.toml uv.lock ./
 
-# Copy everything FIRST so uv can see the project structure
+RUN uv pip install --system -r pyproject.toml
+
 COPY . .
 
-# Now install. Use --no-dev to keep the image slim (skip jupyter/ipykernel)
-RUN uv sync --frozen --no-dev
-
-# Fix the CMD typo (comma instead of dot)
-CMD ["sh", "-c", "python -m app.database.create_tables || true && python main.py"]
+CMD ["uv", "run", "main.py"]
