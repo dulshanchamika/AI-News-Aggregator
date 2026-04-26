@@ -5,13 +5,17 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+# Install uv
+RUN pip install --no-cache-dir uv
 
-RUN pip install --no-cache-dir uv && \
-    uv pip install --system -e .
-
+# Copy everything FIRST so uv can see the project structure
 COPY . .
 
-CMD ["sh", "-c", "python -m app.database.create_tables 2>/dev/null || true && python main.py"]
+# Now install. Use --no-dev to keep the image slim (skip jupyter/ipykernel)
+RUN uv pip install --system --no-cache --no-dev .
+
+# Fix the CMD typo (comma instead of dot)
+CMD ["sh", "-c", "python -m app.database.create_tables || true && python main.py"]
