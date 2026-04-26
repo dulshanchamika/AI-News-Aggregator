@@ -28,7 +28,7 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     repo = Repository()
     
     # 2. Fetch raw data
-    digests = repo.get_recent_digests(hours=hours)
+    digests = repo.get_unsent_digests(hours=hours)
     total = len(digests)
     
     if total == 0:
@@ -94,7 +94,12 @@ def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
             body_html=html_content
         )
         
-        logger.info("Email sent successfully!")
+        # Mark as sent in DB
+        repo = Repository()
+        digest_ids_to_mark = [a.digest_id for a in result.articles]
+        if digest_ids_to_mark:
+            repo.mark_digests_as_sent(digest_ids_to_mark)
+        
         return {
             "success": True,
             "subject": subject,
