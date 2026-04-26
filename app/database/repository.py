@@ -230,8 +230,7 @@ class Repository:
     def get_unsent_digests(self, hours: int = 24) -> List[Dict[str, Any]]:
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         digests = self.session.query(Digest).filter(
-            Digest.created_at >= cutoff_time,
-            Digest.sent_at.is_(None)
+            Digest.created_at >= cutoff_time
         ).order_by(Digest.created_at.desc()).all()
         
         return [

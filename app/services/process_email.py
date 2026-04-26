@@ -78,7 +78,7 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     
     return email_digest
 
-def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
+def send_digest_email(hours: int = 72, top_n: int = 10) -> dict:
     try:
         # Generate the structured digest
         result = generate_email_digest(hours=hours, top_n=top_n)
@@ -89,7 +89,11 @@ def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
         
         # Clean subject line
         clean_date = result.introduction.greeting.split('for ')[-1] if 'for ' in result.introduction.greeting else 'Today'
-        subject = f"Daily AI News Digest - {clean_date}"
+        if hours > 24:
+            days = hours // 24
+            subject = f"📬 AI News Digest (Last {days} Days) - {clean_date}"
+        else:
+            subject = f"📬 Daily AI News Digest - {clean_date}"
         
         # Dispatch email
         send_email(
