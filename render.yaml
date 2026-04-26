@@ -8,9 +8,9 @@ services:
   - type: cron
     name: daily-digest-job
     env: docker
-    dockerfilePath: ./dockerfilePath
+    dockerfilePath: ./Dockerfile
     schedule: "0 0 * * *"
-    dockerCommand: python main.py 
+    dockerCommand: python main.py
     envVars:
       - key: DATABASE_URL
         fromDatabase:
