@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir uv
 COPY . .
 
 # Now install. Use --no-dev to keep the image slim (skip jupyter/ipykernel)
-RUN uv pip install --system --no-cache --no-dev .
+RUN uv sync --frozen --no-dev
 
 # Fix the CMD typo (comma instead of dot)
 CMD ["sh", "-c", "python -m app.database.create_tables || true && python main.py"]
