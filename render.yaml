@@ -1,10 +1,10 @@
-services:
-  - type: pg
+databases:
     name: ai-news-aggregator-db
     databaseName: ai_news_aggregator
     user: ai_news_user
     plan: free
 
+services:
   - type: cron
     name: daily-digest-job
     env: docker
