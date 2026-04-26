@@ -227,7 +227,7 @@ class Repository:
         self.session.commit()
         return digest
     
-    def get_recent_digests(self, hours: int = 24) -> List[Dict[str, Any]]:
+    def get_unsent_digests(self, hours: int = 24) -> List[Dict[str, Any]]:
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         digests = self.session.query(Digest).filter(
             Digest.created_at >= cutoff_time
@@ -241,7 +241,16 @@ class Repository:
                 "url": d.url,
                 "title": d.title,
                 "summary": d.summary,
-                "created_at": d.created_at
+                "created_at": d.created_at,
+                "sent_at": d.sent_at
             }
             for d in digests
         ]
+
+    def mark_digests_as_sent(self, digest_ids: List[str]) -> bool:
+        digests = self.session.query(Digest).filter(Digest.id.in_(digest_ids)).all()
+        now = datetime.now(timezone.utc)
+        for digest in digests:
+            digest.sent_at = now
+        self.session.commit()
+        return True

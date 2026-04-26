@@ -28,12 +28,16 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     repo = Repository()
     
     # 2. Fetch raw data
-    digests = repo.get_recent_digests(hours=hours)
+    digests = repo.get_unsent_digests(hours=hours)
     total = len(digests)
     
     if total == 0:
         logger.warning(f"No digests found from the last {hours} hours")
-        raise ValueError("No digests available for the requested timeframe.")
+        return email_agent.create_email_digest_response(
+            ranked_articles=[],
+            total_ranked=0,
+            limit=top_n
+        )
     
     # 3. Rank articles (Using the BATCHED Gemini method)
     logger.info(f"Ranking {total} digests for {USER_PROFILE['name']}...")
@@ -74,7 +78,7 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     
     return email_digest
 
-def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
+def send_digest_email(hours: int = 72, top_n: int = 10) -> dict:
     try:
         # Generate the structured digest
         result = generate_email_digest(hours=hours, top_n=top_n)
@@ -85,7 +89,11 @@ def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
         
         # Clean subject line
         clean_date = result.introduction.greeting.split('for ')[-1] if 'for ' in result.introduction.greeting else 'Today'
-        subject = f"Daily AI News Digest - {clean_date}"
+        if hours > 24:
+            days = hours // 24
+            subject = f"📬 AI News Digest (Last {days} Days) - {clean_date}"
+        else:
+            subject = f"📬 Daily AI News Digest - {clean_date}"
         
         # Dispatch email
         send_email(
@@ -94,7 +102,12 @@ def send_digest_email(hours: int = 24, top_n: int = 10) -> dict:
             body_html=html_content
         )
         
-        logger.info("Email sent successfully!")
+        # Mark as sent in DB
+        repo = Repository()
+        digest_ids_to_mark = [a.digest_id for a in result.articles]
+        if digest_ids_to_mark:
+            repo.mark_digests_as_sent(digest_ids_to_mark)
+        
         return {
             "success": True,
             "subject": subject,
